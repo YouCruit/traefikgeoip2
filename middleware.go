@@ -128,12 +128,14 @@ func (mw *TraefikGeoIP2) ServeHTTP(reqWr http.ResponseWriter, req *http.Request)
 			country: Unknown,
 			region:  Unknown,
 			city:    Unknown,
+			postal:  Unknown,
 		}
 	}
 
 	req.Header.Set(CountryHeader, res.country)
 	req.Header.Set(RegionHeader, res.region)
 	req.Header.Set(CityHeader, res.city)
+	req.Header.Set(PostalCodeHeader, res.postal)
 	req.Header.Set(IPAddressHeader, ipStr)
 
 	mw.next.ServeHTTP(reqWr, req)
