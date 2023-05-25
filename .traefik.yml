@@ -9,3 +9,4 @@ import: github.com/YouCruit/traefikgeoip2
 testData:
   dbPath: 'GeoLite2-Country.mmdb'
   customIPHeader: ''
+  dbType: ''

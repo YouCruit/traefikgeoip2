@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net"
 	"strconv"
+	"strings"
 )
 
 type CityReader struct {
@@ -88,8 +89,7 @@ func NewCityReader(buffer []byte) (*CityReader, error) {
 	if err != nil {
 		return nil, err
 	}
-	if reader.metadata.DatabaseType != "GeoIP2-City" &&
-		reader.metadata.DatabaseType != "GeoLite2-City" &&
+	if !strings.Contains(reader.metadata.DatabaseType, "City") &&
 		reader.metadata.DatabaseType != "GeoIP2-Enterprise" {
 		return nil, errors.New("wrong MaxMind DB City type: " + reader.metadata.DatabaseType)
 	}

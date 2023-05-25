@@ -55,6 +55,7 @@ type Location struct {
 	TimeZone       string
 	AccuracyRadius uint16
 	MetroCode      uint16
+	WeatherCode    string
 }
 
 type Postal struct {

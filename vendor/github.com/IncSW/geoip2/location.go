@@ -69,6 +69,8 @@ func readLocationMap(location *Location, buffer []byte, mapSize uint, offset uin
 			if err != nil {
 				return 0, err
 			}
+		case "weather_code":
+			location.WeatherCode, offset, err = readString(buffer, offset)
 		default:
 			return 0, errors.New("unknown location key: " + string(key))
 		}

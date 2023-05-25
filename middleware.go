@@ -23,6 +23,7 @@ func ResetLookup() {
 type Config struct {
 	DBPath         string `json:"dbPath,omitempty"`
 	CustomIPHeader string `json:"customIPHeader"`
+	DBType         string `json:"dbType"`
 }
 
 // CreateConfig creates the default plugin configuration.
@@ -42,38 +43,59 @@ type TraefikGeoIP2 struct {
 
 // New created a new TraefikGeoIP2 plugin.
 func New(_ context.Context, next http.Handler, cfg *Config, name string) (handler http.Handler, err error) {
+	const (
+		City    = "City"
+		Country = "Country"
+	)
 	handler = &TraefikGeoIP2{
 		next:           next,
 		name:           name,
 		customIPHeader: cfg.CustomIPHeader,
 	}
-	if _, err := os.Stat(cfg.DBPath); err != nil {
-		log.Printf("[geoip2] DB not found: db=%s, name=%s, err=%v", cfg.DBPath, name, err)
-		return &TraefikGeoIP2{
-			next: next,
-			name: name,
-		}, nil
+	if lookup != nil {
+		return
 	}
 
-	if lookup == nil && strings.Contains(cfg.DBPath, "City") {
+	if _, err := os.Stat(cfg.DBPath); err != nil {
+		log.Printf("[geoip2] DB not found: db=%s, name=%s, err=%v", cfg.DBPath, name, err)
+		return
+	}
+
+	var dbType string
+	switch cfg.DBType {
+	case "":
+		if strings.Contains(cfg.DBPath, City) {
+			dbType = City
+		} else if strings.Contains(cfg.DBPath, Country) {
+			dbType = Country
+		}
+	default:
+		dbType = cfg.DBType
+	}
+
+	switch dbType {
+	case City:
 		rdr, err := geoip2.NewCityReaderFromFile(cfg.DBPath)
 		if err != nil {
 			log.Printf("[geoip2] lookup DB is not initialized: db=%s, name=%s, err=%v", cfg.DBPath, name, err)
-		} else {
-			lookup = CreateCityDBLookup(rdr)
-			log.Printf("[geoip2] lookup DB initialized: db=%s, name=%s, lookup=%v", cfg.DBPath, name, lookup)
+			return
 		}
-	}
+		lookup = CreateCityDBLookup(rdr)
 
-	if lookup == nil && strings.Contains(cfg.DBPath, "Country") {
+	case Country:
 		rdr, err := geoip2.NewCountryReaderFromFile(cfg.DBPath)
 		if err != nil {
 			log.Printf("[geoip2] lookup DB is not initialized: db=%s, name=%s, err=%v", cfg.DBPath, name, err)
-		} else {
-			lookup = CreateCountryDBLookup(rdr)
-			log.Printf("[geoip2] lookup DB initialized: db=%s, name=%s, lookup=%v", cfg.DBPath, name, lookup)
+			return
 		}
+		lookup = CreateCountryDBLookup(rdr)
+	default:
+		log.Printf("[geoip2] Incorrect dbType value set: dbType=%s, db=%s, name=%s", dbType, cfg.DBPath, name)
+		return
 	}
+	log.Printf("[geoip2] lookup DB initialized: db=%s, dbType=%s, name=%s, lookup=%v", cfg.DBPath, dbType, name, lookup)
+	return
+}
 
 func (mw *TraefikGeoIP2) getIP(req *http.Request) (ipStr string) {
 	if mw.customIPHeader != "" {
